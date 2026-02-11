@@ -8,27 +8,62 @@ logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
 
 def fetch_ticker_lists():
-    """Fetch all available equity tickers from Yahoo Finance using the yfinance screener."""
+    """Fetch tickers from S&P 500, NASDAQ, Dow Jones Industrial Average, and TSX."""
     tickers = set()
 
-    queries = [
-        yf.EquityQuery('eq', ['region', 'us']),
-        yf.EquityQuery('eq', ['region', 'ca']),
-    ]
+    # S&P 500 — Wikipedia
+    try:
+        df = pd.read_html("https://en.wikipedia.org/wiki/List_of_S%26P_500_companies")[0]
+        tickers.update(df["Symbol"].dropna().astype(str).str.strip())
+        print(f"  S&P 500: {len(df)} tickers")
+    except Exception as e:
+        print(f"  S&P 500: failed ({e})")
 
-    for query in queries:
+    # Dow Jones Industrial Average — Wikipedia
+    try:
+        df = pd.read_html(
+            "https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average",
+            match="Symbol",
+        )[0]
+        tickers.update(df["Symbol"].dropna().astype(str).str.strip())
+        print(f"  DJIA: {len(df)} tickers")
+    except Exception as e:
+        print(f"  DJIA: failed ({e})")
+
+    # NASDAQ (all listed stocks) — official NASDAQ Trader file
+    try:
+        df = pd.read_csv(
+            "https://www.nasdaqtrader.com/dynamic/symdir/nasdaqlisted.txt", sep="|"
+        )
+        df = df[df["Test Issue"] == "N"]
+        df = df[~df["Symbol"].astype(str).str.contains("File Creation", na=False)]
+        symbols = df["Symbol"].dropna().astype(str).str.strip().tolist()
+        tickers.update(symbols)
+        print(f"  NASDAQ: {len(symbols)} tickers")
+    except Exception as e:
+        print(f"  NASDAQ: failed ({e})")
+
+    # TSX — yfinance screener (exchange code TOR)
+    try:
+        tsx_count = 0
+        query = yf.EquityQuery('eq', ['exchange', 'TOR'])
         offset = 0
-        size = 250  # Yahoo hard limit per request
+        size = 250
         while True:
             response = yf.screen(query, offset=offset, size=size)
             quotes = response.get("quotes", [])
             if not quotes:
                 break
-            tickers.update(q["symbol"] for q in quotes if "symbol" in q)
+            batch = [q["symbol"] for q in quotes if "symbol" in q]
+            tickers.update(batch)
+            tsx_count += len(batch)
             total = response.get("total", 0)
             offset += size
             if offset >= total:
                 break
+        print(f"  TSX: {tsx_count} tickers")
+    except Exception as e:
+        print(f"  TSX: failed ({e})")
 
     return sorted(tickers)
 
