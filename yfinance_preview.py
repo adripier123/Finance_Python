@@ -101,8 +101,8 @@ TICKERS = [
     "NXE.TO", "DML.TO", "FCU.TO", "EFR.TO", "URC.TO",
     # ── US Crypto / Blockchain (10) ───────────────────────────────────
     "MSTR", "CLSK", "HUT", "BITF", "CIFR", "BTDR", "IREN", "WULF", "CORZ", "BTBT",
-    # ── Canadian Crypto / Blockchain (3) ──────────────────────────────
-    "HUT.TO", "BITF.TO", "HIVE.TO",
+    # ── Canadian Crypto / Blockchain (4) ──────────────────────────────
+    "HUT.TO", "BITF.TO", "HIVE.TO", "GLXY.TO",
     # ── US Sports & Entertainment (12) ────────────────────────────────
     "TKO", "PENN", "FLUT", "CHDN", "LNW", "MSGS", "MSGE", "FWONK",
     "WMG", "SPOT", "IMAX", "WWE",
@@ -214,3 +214,8 @@ pd.set_option("display.max_rows", None)
 print(df.to_string())
 print(f"{'=' * width}")
 print(f"\nTotal stocks found: {len(df)}")
+
+# Export to Excel
+output_file = f"stock_screener_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+df.to_excel(output_file, index=True, index_label="#")
+print(f"Results exported to {output_file}")
