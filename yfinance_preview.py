@@ -6,7 +6,7 @@ from datetime import datetime
 # Suppress noisy yfinance/connection warnings
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
-# Curated list of 500 US and Canadian stocks by market cap
+# Curated list of ~540 US and Canadian stocks by market cap
 TICKERS = [
     # ── US Technology (80) ──────────────────────────────────────────────
     "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "AMD", "INTC", "CRM",
@@ -95,11 +95,22 @@ TICKERS = [
     "KXS.TO", "DSG.TO", "DCBO.TO",
     # ── Canadian Real Estate (4) ────────────────────────────────────────
     "CAR-UN.TO", "REI-UN.TO", "GRT-UN.TO", "SRU-UN.TO",
+    # ── US Uranium (10) ───────────────────────────────────────────────
+    "CCJ", "UEC", "UUUU", "DNN", "LEU", "NXE", "URG", "SMR", "OKLO", "LTBR",
+    # ── Canadian Uranium (5) ──────────────────────────────────────────
+    "NXE.TO", "DML.TO", "FCU.TO", "EFR.TO", "URC.TO",
+    # ── US Crypto / Blockchain (10) ───────────────────────────────────
+    "MSTR", "CLSK", "HUT", "BITF", "CIFR", "BTDR", "IREN", "WULF", "CORZ", "BTBT",
+    # ── Canadian Crypto / Blockchain (3) ──────────────────────────────
+    "HUT.TO", "BITF.TO", "HIVE.TO",
+    # ── US Sports & Entertainment (12) ────────────────────────────────
+    "TKO", "PENN", "FLUT", "CHDN", "LNW", "MSGS", "MSGE", "FWONK",
+    "WMG", "SPOT", "IMAX", "WWE",
 ]
 
 
 def fetch_ticker_lists():
-    """Return the curated list of 500 US and Canadian stock tickers."""
+    """Return the curated list of US and Canadian stock tickers."""
     return sorted(TICKERS)
 
 
@@ -201,7 +212,8 @@ print(f"{'=' * width}")
 print(f"{'Stocks Down >30% from 52-Week High (Buy/Strong Buy Only) — Preview':^{width}}")
 print(f"{'Source: ' + source:^{width}}")
 print(f"{'=' * width}")
-print(df.head(25).to_string())
+pd.set_option("display.max_rows", None)
+print(df.to_string())
 print(f"{'=' * width}")
 print(f"\nTotal stocks found: {len(df)}")
 if len(df) > 0:
