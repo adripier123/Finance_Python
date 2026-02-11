@@ -7,30 +7,6 @@ from datetime import datetime
 # Suppress noisy yfinance/connection warnings
 logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
-# Fallback tickers used when Wikipedia fetch is unavailable
-FALLBACK_TICKERS = [
-    # Tech
-    "AAPL", "MSFT", "GOOGL", "AMZN", "META", "NVDA", "TSLA", "AMD", "INTC", "CRM",
-    "ADBE", "NFLX", "PYPL", "SHOP", "SQ", "SNAP", "PINS", "UBER", "LYFT", "ROKU",
-    "ZM", "DOCU", "PLTR", "SOFI", "COIN", "MARA", "RIOT", "SMCI", "ARM", "DELL",
-    # Healthcare / Biotech
-    "PFE", "MRNA", "BNTX", "JNJ", "BMY", "ABBV", "GILD", "BIIB", "REGN", "AMGN",
-    # Finance
-    "JPM", "BAC", "GS", "MS", "WFC", "C", "SCHW", "BLK", "AXP", "V",
-    # Energy
-    "XOM", "CVX", "OXY", "SLB", "DVN", "MPC", "VLO", "HAL", "FANG", "COP",
-    # Consumer / Retail
-    "NKE", "SBUX", "MCD", "DIS", "WMT", "TGT", "COST", "HD", "LOW", "LULU",
-    # Industrial / Other
-    "BA", "CAT", "DE", "GE", "MMM", "F", "GM", "RIVN", "LCID", "FSR",
-    # Canadian Stocks (TSX)
-    "RY.TO", "TD.TO", "BNS.TO", "BMO.TO", "CM.TO",
-    "ENB.TO", "CNQ.TO", "SU.TO", "TRP.TO", "IMO.TO",
-    "SHOP.TO", "CSU.TO", "OTEX.TO", "BB.TO", "LSPD.TO",
-    "NTR.TO", "ABX.TO", "FNV.TO", "WFG.TO", "CCL-B.TO",
-    "CP.TO", "CNR.TO", "AC.TO", "QSR.TO", "MRU.TO",
-]
-
 
 def fetch_ticker_lists():
     """Fetch S&P 500, S&P MidCap 400, S&P SmallCap 600, and S&P/TSX Composite tickers."""
@@ -65,10 +41,6 @@ def fetch_ticker_lists():
                     break
     except Exception:
         pass
-
-    # Fall back to hardcoded list if fetching failed
-    if len(tickers) < 100:
-        return FALLBACK_TICKERS
 
     return sorted(tickers)
 
@@ -193,10 +165,7 @@ def generate_sample_data():
 
 # --- Main ---
 print("\nFetching ticker lists...")
-try:
-    tickers = fetch_ticker_lists()
-except Exception:
-    tickers = FALLBACK_TICKERS
+tickers = fetch_ticker_lists()
 
 print(f"Scanning {len(tickers)} tickers for stocks down >30% from their 1-year high...")
 print(f"Date: {datetime.now().strftime('%Y-%m-%d')}\n")
