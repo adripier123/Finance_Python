@@ -152,12 +152,23 @@ def fetch_live_data(tickers):
     results = []
     for symbol, current_price, year_high, pct_drop in candidates:
         try:
-            info = yf.Ticker(symbol).info
+            ticker_obj = yf.Ticker(symbol)
+            info = ticker_obj.info
             target = info.get("targetMeanPrice", None)
             upside = (
                 round(((target - current_price) / current_price) * 100, 2)
                 if target and current_price > 0 else None
             )
+            # 5-year annualized earnings growth estimate
+            growth_5y = None
+            try:
+                ge = ticker_obj.growth_estimates
+                if ge is not None and "+5y" in ge.index and "stockTrend" in ge.columns:
+                    val = ge.loc["+5y", "stockTrend"]
+                    if pd.notna(val):
+                        growth_5y = round(float(val) * 100, 2)
+            except Exception:
+                pass
             results.append({
                 "Sector": info.get("sector", "Other"),
                 "Ticker": symbol,
@@ -168,6 +179,7 @@ def fetch_live_data(tickers):
                 "Forward P/E": info.get("forwardPE", None),
                 "1Y Target": target,
                 "Potential Upside (%)": upside,
+                "5Y EPS Growth (%)": growth_5y,
                 "Buy Rating": info.get("recommendationKey", None),
             })
         except Exception:
@@ -187,16 +199,16 @@ results = fetch_live_data(tickers)
 source = "Yahoo Finance (live)"
 
 df = pd.DataFrame(results)
-df = df.sort_values("Drop from High (%)", ascending=True).reset_index(drop=True)
+df = df.sort_values(["Buy Rating", "Potential Upside (%)"], ascending=[False, False]).reset_index(drop=True)
 df.index = df.index + 1  # 1-based row numbers
 
 # Ensure column order with Sector first and Potential Upside before Buy Rating
 col_order = ["Sector", "Ticker", "Current Price", "52-Week High", "Drop from High (%)",
-             "P/E", "Forward P/E", "1Y Target", "Potential Upside (%)", "Buy Rating"]
+             "P/E", "Forward P/E", "1Y Target", "Potential Upside (%)", "5Y EPS Growth (%)", "Buy Rating"]
 df = df[col_order]
 
 # Round numeric columns for clean display
-for col in ["P/E", "Forward P/E", "1Y Target", "Potential Upside (%)"]:
+for col in ["P/E", "Forward P/E", "1Y Target", "Potential Upside (%)", "5Y EPS Growth (%)"]:
     df[col] = df[col].apply(lambda x: round(float(x), 2) if pd.notna(x) and isinstance(x, (int, float)) else "N/A")
 
 # Capitalize Buy Rating for display
