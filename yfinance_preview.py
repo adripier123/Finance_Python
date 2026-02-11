@@ -186,12 +186,16 @@ for col in ["P/E", "Forward P/E", "1Y Target"]:
     df[col] = df[col].apply(lambda x: round(x, 2) if pd.notna(x) else "N/A")
 
 # Capitalize Buy Rating for display
-df["Buy Rating"] = df["Buy Rating"].apply(lambda x: x.capitalize() if isinstance(x, str) else "N/A")
+df["Buy Rating"] = df["Buy Rating"].apply(lambda x: x.replace("_", " ").title() if isinstance(x, str) else "N/A")
+
+# Filter for Buy and Strong Buy ratings only
+df = df[df["Buy Rating"].isin(["Buy", "Strong Buy"])].reset_index(drop=True)
+df.index = df.index + 1  # 1-based row numbers
 
 # Display 25-row preview
 width = 130
 print("=" * width)
-print(f"{'Stocks Down >30% from 52-Week High — 25 Row Preview':^{width}}")
+print(f"{'Stocks Down >30% from 52-Week High (Buy/Strong Buy Only) — 25 Row Preview':^{width}}")
 print(f"{'Source: ' + source:^{width}}")
 print("=" * width)
 print(df.head(25).to_string())
