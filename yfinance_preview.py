@@ -115,7 +115,7 @@ def fetch_ticker_lists():
 
 
 def fetch_live_data(tickers):
-    """Batch-download 1-year history, then fetch details only for stocks down >30%."""
+    """Batch-download 1-year history and fetch details for all tickers."""
     print(f"  Downloading price history for {len(tickers)} tickers...")
     data = yf.download(tickers, period="1y", progress=False, threads=True)
 
@@ -124,8 +124,8 @@ def fetch_live_data(tickers):
 
     multi = isinstance(data.columns, pd.MultiIndex)
 
-    # Pass 1: find stocks down >30% from 52-week high
-    candidates = []
+    # Compute 52-week high and current price for each ticker
+    price_data = {}
     for symbol in tickers:
         try:
             if multi:
@@ -141,34 +141,21 @@ def fetch_live_data(tickers):
             year_high = float(high.max())
             current_price = float(close.iloc[-1])
             pct_drop = ((current_price - year_high) / year_high) * 100
-
-            if pct_drop <= -30:
-                candidates.append((symbol, current_price, year_high, pct_drop))
+            price_data[symbol] = (current_price, year_high, pct_drop)
         except Exception:
             continue
 
-    # Pass 2: fetch detailed info only for candidates
-    print(f"  Found {len(candidates)} stocks down >30%, fetching details...")
+    # Fetch detailed info for all tickers with price data
+    print(f"  Fetching details for {len(price_data)} tickers...")
     results = []
-    for symbol, current_price, year_high, pct_drop in candidates:
+    for symbol, (current_price, year_high, pct_drop) in price_data.items():
         try:
-            ticker_obj = yf.Ticker(symbol)
-            info = ticker_obj.info
+            info = yf.Ticker(symbol).info
             target = info.get("targetMeanPrice", None)
             upside = (
                 round(((target - current_price) / current_price) * 100, 2)
                 if target and current_price > 0 else None
             )
-            # 5-year annualized earnings growth estimate
-            growth_5y = None
-            try:
-                ge = ticker_obj.growth_estimates
-                if ge is not None and "+5y" in ge.index and "stockTrend" in ge.columns:
-                    val = ge.loc["+5y", "stockTrend"]
-                    if pd.notna(val):
-                        growth_5y = round(float(val) * 100, 2)
-            except Exception:
-                pass
             results.append({
                 "Sector": info.get("sector", "Other"),
                 "Ticker": symbol,
@@ -179,7 +166,6 @@ def fetch_live_data(tickers):
                 "Forward P/E": info.get("forwardPE", None),
                 "1Y Target": target,
                 "Potential Upside (%)": upside,
-                "5Y EPS Growth (%)": growth_5y,
                 "Buy Rating": info.get("recommendationKey", None),
             })
         except Exception:
@@ -192,7 +178,7 @@ def fetch_live_data(tickers):
 print("\nFetching ticker lists...")
 tickers = fetch_ticker_lists()
 
-print(f"Scanning {len(tickers)} tickers for stocks down >30% from their 1-year high...")
+print(f"Scanning {len(tickers)} tickers...")
 print(f"Date: {datetime.now().strftime('%Y-%m-%d')}\n")
 
 results = fetch_live_data(tickers)
@@ -202,13 +188,13 @@ df = pd.DataFrame(results)
 df = df.sort_values(["Buy Rating", "Potential Upside (%)"], ascending=[False, False]).reset_index(drop=True)
 df.index = df.index + 1  # 1-based row numbers
 
-# Ensure column order with Sector first and Potential Upside before Buy Rating
+# Ensure column order
 col_order = ["Sector", "Ticker", "Current Price", "52-Week High", "Drop from High (%)",
-             "P/E", "Forward P/E", "1Y Target", "Potential Upside (%)", "5Y EPS Growth (%)", "Buy Rating"]
+             "P/E", "Forward P/E", "1Y Target", "Potential Upside (%)", "Buy Rating"]
 df = df[col_order]
 
 # Round numeric columns for clean display
-for col in ["P/E", "Forward P/E", "1Y Target", "Potential Upside (%)", "5Y EPS Growth (%)"]:
+for col in ["P/E", "Forward P/E", "1Y Target", "Potential Upside (%)"]:
     df[col] = df[col].apply(lambda x: round(float(x), 2) if pd.notna(x) and isinstance(x, (int, float)) else "N/A")
 
 # Capitalize Buy Rating for display
@@ -218,16 +204,13 @@ df["Buy Rating"] = df["Buy Rating"].apply(lambda x: x.replace("_", " ").title() 
 df = df[df["Buy Rating"].isin(["Buy", "Strong Buy"])].reset_index(drop=True)
 df.index = df.index + 1  # 1-based row numbers
 
-# Display preview
+# Display results
 width = 155
 print(f"{'=' * width}")
-print(f"{'Stocks Down >30% from 52-Week High (Buy/Strong Buy Only) — Preview':^{width}}")
+print(f"{'Buy/Strong Buy Rated Stocks — Sorted by Rating & Upside':^{width}}")
 print(f"{'Source: ' + source:^{width}}")
 print(f"{'=' * width}")
 pd.set_option("display.max_rows", None)
 print(df.to_string())
 print(f"{'=' * width}")
 print(f"\nTotal stocks found: {len(df)}")
-if len(df) > 0:
-    print(f"Biggest drop: {df.iloc[0]['Ticker']} at {df.iloc[0]['Drop from High (%)']}%")
-    print(f"Average drop: {df['Drop from High (%)'].mean():.2f}%")
