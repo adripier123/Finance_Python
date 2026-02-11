@@ -23,7 +23,57 @@ TICKERS = [
     "NKE", "SBUX", "MCD", "DIS", "WMT", "TGT", "COST", "HD", "LOW", "LULU",
     # Industrial / Other
     "BA", "CAT", "DE", "GE", "MMM", "F", "GM", "RIVN", "LCID", "FSR",
+    # Canadian Stocks (TSX)
+    "RY.TO", "TD.TO", "BNS.TO", "BMO.TO", "CM.TO",       # Banks
+    "ENB.TO", "CNQ.TO", "SU.TO", "TRP.TO", "IMO.TO",     # Energy
+    "SHOP.TO", "CSU.TO", "OTEX.TO", "BB.TO", "LSPD.TO",  # Tech
+    "NTR.TO", "ABX.TO", "FNV.TO", "WFG.TO", "CCL-B.TO",  # Materials
+    "CP.TO", "CNR.TO", "AC.TO", "QSR.TO", "MRU.TO",      # Industrial / Consumer
 ]
+
+# Sector mapping for all tickers
+SECTOR_MAP = {
+    # US Tech
+    "AAPL": "Tech", "MSFT": "Tech", "GOOGL": "Tech", "AMZN": "Tech", "META": "Tech",
+    "NVDA": "Tech", "TSLA": "Tech", "AMD": "Tech", "INTC": "Tech", "CRM": "Tech",
+    "ADBE": "Tech", "NFLX": "Tech", "PYPL": "Tech", "SHOP": "Tech", "SQ": "Tech",
+    "SNAP": "Tech", "PINS": "Tech", "UBER": "Tech", "LYFT": "Tech", "ROKU": "Tech",
+    "ZM": "Tech", "DOCU": "Tech", "PLTR": "Tech", "SOFI": "Tech", "COIN": "Tech",
+    "MARA": "Tech", "RIOT": "Tech", "SMCI": "Tech", "ARM": "Tech", "DELL": "Tech",
+    # US Healthcare / Biotech
+    "PFE": "Healthcare", "MRNA": "Healthcare", "BNTX": "Healthcare", "JNJ": "Healthcare",
+    "BMY": "Healthcare", "ABBV": "Healthcare", "GILD": "Healthcare", "BIIB": "Healthcare",
+    "REGN": "Healthcare", "AMGN": "Healthcare",
+    # US Finance
+    "JPM": "Finance", "BAC": "Finance", "GS": "Finance", "MS": "Finance", "WFC": "Finance",
+    "C": "Finance", "SCHW": "Finance", "BLK": "Finance", "AXP": "Finance", "V": "Finance",
+    # US Energy
+    "XOM": "Energy", "CVX": "Energy", "OXY": "Energy", "SLB": "Energy", "DVN": "Energy",
+    "MPC": "Energy", "VLO": "Energy", "HAL": "Energy", "FANG": "Energy", "COP": "Energy",
+    # US Consumer / Retail
+    "NKE": "Consumer", "SBUX": "Consumer", "MCD": "Consumer", "DIS": "Consumer",
+    "WMT": "Consumer", "TGT": "Consumer", "COST": "Consumer", "HD": "Consumer",
+    "LOW": "Consumer", "LULU": "Consumer",
+    # US Industrial / Other
+    "BA": "Industrial", "CAT": "Industrial", "DE": "Industrial", "GE": "Industrial",
+    "MMM": "Industrial", "F": "Industrial", "GM": "Industrial", "RIVN": "Industrial",
+    "LCID": "Industrial", "FSR": "Industrial",
+    # Canadian Banks
+    "RY.TO": "Finance", "TD.TO": "Finance", "BNS.TO": "Finance", "BMO.TO": "Finance",
+    "CM.TO": "Finance",
+    # Canadian Energy
+    "ENB.TO": "Energy", "CNQ.TO": "Energy", "SU.TO": "Energy", "TRP.TO": "Energy",
+    "IMO.TO": "Energy",
+    # Canadian Tech
+    "SHOP.TO": "Tech", "CSU.TO": "Tech", "OTEX.TO": "Tech", "BB.TO": "Tech",
+    "LSPD.TO": "Tech",
+    # Canadian Materials
+    "NTR.TO": "Materials", "ABX.TO": "Materials", "FNV.TO": "Materials",
+    "WFG.TO": "Materials", "CCL-B.TO": "Materials",
+    # Canadian Industrial / Consumer
+    "CP.TO": "Industrial", "CNR.TO": "Industrial", "AC.TO": "Consumer",
+    "QSR.TO": "Consumer", "MRU.TO": "Consumer",
+}
 
 
 def fetch_live_data(tickers):
@@ -41,6 +91,7 @@ def fetch_live_data(tickers):
             if pct_drop <= -30:
                 info = tk.info
                 results.append({
+                    "Sector": SECTOR_MAP.get(symbol, "Other"),
                     "Ticker": symbol,
                     "Current Price": round(current_price, 2),
                     "52-Week High": round(year_high, 2),
@@ -85,9 +136,16 @@ def generate_sample_data():
         ("LYFT",    9.96,  18.68, -46.68,  18.20,  11.75,  16.00, "buy"),
         ("BIIB",  148.30, 235.75, -37.10,  13.42,  11.85, 210.00, "hold"),
         ("DIS",    85.41, 123.74, -30.97,  34.60,  16.90, 115.00, "buy"),
+        # Canadian stocks (TSX)
+        ("BB.TO",    2.85,   5.72, -50.17,   None,   None,   4.00, "hold"),
+        ("LSPD.TO", 16.42,  26.18, -37.28,   None,  45.30,  22.00, "buy"),
+        ("AC.TO",   14.58,  23.90, -38.99,   4.20,   3.85,  21.00, "buy"),
+        ("BNS.TO",  62.35,  95.10, -34.44,   9.80,   9.15,  78.00, "hold"),
+        ("SU.TO",   38.72,  58.46, -33.78,   7.60,   8.20,  52.00, "buy"),
     ]
     return [
         {
+            "Sector": SECTOR_MAP.get(s[0], "Other"),
             "Ticker": s[0],
             "Current Price": s[1],
             "52-Week High": s[2],
@@ -118,6 +176,11 @@ df = pd.DataFrame(results)
 df = df.sort_values("Drop from High (%)", ascending=True).reset_index(drop=True)
 df.index = df.index + 1  # 1-based row numbers
 
+# Ensure Sector is the first column
+col_order = ["Sector", "Ticker", "Current Price", "52-Week High", "Drop from High (%)",
+             "P/E", "Forward P/E", "1Y Target", "Buy Rating"]
+df = df[col_order]
+
 # Round numeric columns for clean display
 for col in ["P/E", "Forward P/E", "1Y Target"]:
     df[col] = df[col].apply(lambda x: round(x, 2) if pd.notna(x) else "N/A")
@@ -126,7 +189,7 @@ for col in ["P/E", "Forward P/E", "1Y Target"]:
 df["Buy Rating"] = df["Buy Rating"].apply(lambda x: x.capitalize() if isinstance(x, str) else "N/A")
 
 # Display 25-row preview
-width = 115
+width = 130
 print("=" * width)
 print(f"{'Stocks Down >30% from 52-Week High — 25 Row Preview':^{width}}")
 print(f"{'Source: ' + source:^{width}}")
