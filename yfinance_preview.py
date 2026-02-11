@@ -230,15 +230,27 @@ df["Buy Rating"] = df["Buy Rating"].apply(lambda x: x.replace("_", " ").title() 
 df = df[df["Buy Rating"].isin(["Buy", "Strong Buy"])].reset_index(drop=True)
 df.index = df.index + 1  # 1-based row numbers
 
+# ANSI color codes
+RED = "\033[91m"
+RESET = "\033[0m"
+
+# Use red text when displaying sample (non-live) data
+is_sample = "Sample" in source
+c = RED if is_sample else ""
+r = RESET if is_sample else ""
+
 # Display preview
 width = 155
-print("=" * width)
+print(f"{c}{'=' * width}")
 print(f"{'Stocks Down >30% from 52-Week High (Buy/Strong Buy Only) — Preview':^{width}}")
 print(f"{'Source: ' + source:^{width}}")
-print("=" * width)
+if is_sample:
+    print(f"{'⚠  DATA SHOWN IN RED IS NOT LIVE — SAMPLE DATA ONLY  ⚠':^{width}}")
+print(f"{'=' * width}")
 print(df.head(25).to_string())
-print("=" * width)
+print(f"{'=' * width}")
 print(f"\nTotal stocks found: {len(df)}")
 if len(df) > 0:
     print(f"Biggest drop: {df.iloc[0]['Ticker']} at {df.iloc[0]['Drop from High (%)']}%")
     print(f"Average drop: {df['Drop from High (%)'].mean():.2f}%")
+print(r, end="")
