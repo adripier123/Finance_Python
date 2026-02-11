@@ -9,38 +9,27 @@ logging.getLogger("yfinance").setLevel(logging.CRITICAL)
 
 
 def fetch_ticker_lists():
-    """Fetch S&P 500, S&P MidCap 400, S&P SmallCap 600, and S&P/TSX Composite tickers."""
+    """Fetch all available equity tickers from Yahoo Finance using the yfinance screener."""
     tickers = set()
 
-    # US indices from Wikipedia
-    us_urls = [
-        "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
-        "https://en.wikipedia.org/wiki/List_of_S%26P_400_companies",
-        "https://en.wikipedia.org/wiki/List_of_S%26P_600_companies",
+    queries = [
+        yf.EquityQuery('eq', ['region', 'us']),
+        yf.EquityQuery('eq', ['region', 'ca']),
     ]
-    for url in us_urls:
-        try:
-            table = pd.read_html(url)[0]
-            if "Symbol" in table.columns:
-                symbols = table["Symbol"].dropna().astype(str).tolist()
-                tickers.update(s.strip().replace(".", "-") for s in symbols if s.strip())
-        except Exception:
-            continue
 
-    # S&P/TSX Composite from Wikipedia
-    try:
-        tables = pd.read_html("https://en.wikipedia.org/wiki/S%26P/TSX_Composite_Index")
-        for table in tables:
-            for col in table.columns:
-                if "symbol" in str(col).lower() or "ticker" in str(col).lower():
-                    symbols = table[col].dropna().astype(str).tolist()
-                    for s in symbols:
-                        s = s.strip()
-                        if s and s.lower() != "nan":
-                            tickers.add(s + ".TO" if not s.endswith(".TO") else s)
-                    break
-    except Exception:
-        pass
+    for query in queries:
+        offset = 0
+        size = 250  # Yahoo hard limit per request
+        while True:
+            response = yf.screen(query, offset=offset, size=size)
+            quotes = response.get("quotes", [])
+            if not quotes:
+                break
+            tickers.update(q["symbol"] for q in quotes if "symbol" in q)
+            total = response.get("total", 0)
+            offset += size
+            if offset >= total:
+                break
 
     return sorted(tickers)
 
