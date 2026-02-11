@@ -197,7 +197,7 @@ df = df[col_order]
 
 # Round numeric columns for clean display
 for col in ["P/E", "Forward P/E", "1Y Target", "Potential Upside (%)"]:
-    df[col] = df[col].apply(lambda x: round(x, 2) if pd.notna(x) else "N/A")
+    df[col] = df[col].apply(lambda x: round(float(x), 2) if pd.notna(x) and isinstance(x, (int, float)) else "N/A")
 
 # Capitalize Buy Rating for display
 df["Buy Rating"] = df["Buy Rating"].apply(lambda x: x.replace("_", " ").title() if isinstance(x, str) else "N/A")
